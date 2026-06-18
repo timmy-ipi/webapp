@@ -42,10 +42,15 @@ dependency-scan:
     - trivy fs . --severity HIGH,CRITICAL --exit-code 1 --no-progress
 
 build-image:
+  image: docker:stable
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   stage: build
   script:
     - docker build -t my-app:$CI_COMMIT_SHA .
-    # Sauvegarde l'image pour l'étape suivante
     - docker save my-app:$CI_COMMIT_SHA -o my-image.tar
   artifacts:
     paths:
