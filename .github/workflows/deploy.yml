@@ -81,7 +81,7 @@ jobs:
 
       - name: Tester via Ingress
         run: |
-          curl -H "Host: webapp.local" http://localhost/ | grep -i "hello"
+          curl -H "Host: webapp.local" http://localhost:8081/ | grep -i "hello"
           
       - name: Vérifier le HPA
         run: |
