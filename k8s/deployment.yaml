@@ -27,7 +27,14 @@ spec:
           image: IMAGE_PLACEHOLDER
           ports:
             - containerPort: 3000
-
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+              
           readinessProbe:
             httpGet:
               path: /health
