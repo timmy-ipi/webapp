@@ -9,7 +9,8 @@ on:
 permissions:
   contents: read
   security-events: write
-
+  packages: write
+  
 jobs:
   # 1. Tests unitaires + couverture
   unit-test:
@@ -142,3 +143,23 @@ jobs:
 
       - name: Scan des secrets avec Gitleaks
         uses: gitleaks/gitleaks-action@v2 #Lance Gitleaks 
+
+#7. Publication de l'image Docker dans GHCR : 
+  publish-image:
+    needs: [unit-test, sonar-check, dependency-scan]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connexion GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build et push image
+        run: |
+          docker build -t ghcr.io/timmy-ipi/webapp:latest .
+          docker push ghcr.io/timmy-ipi/webapp:latest
