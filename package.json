@@ -2,7 +2,8 @@
   "name": "devsecops-app",
   "version": "1.0.0",
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "start": "node app.js"
   },
   "dependencies": {
     "express": "^4.21.2"
