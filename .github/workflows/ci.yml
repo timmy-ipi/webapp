@@ -5,12 +5,12 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
-    
+
 permissions:
   contents: read
   security-events: write
   packages: write
-  
+
 jobs:
   # 1. Tests unitaires + couverture
   unit-test:
@@ -54,12 +54,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          # Attend le verdict de la Quality Gate par défaut "Sonar way"
-          # et fait échouer le job si elle n'est pas respectée.
           args: >
             -Dsonar.qualitygate.wait=false
 
-  # 3. Trivy — scan des dépendances (SCA)
+  # 3. Trivy — scan des dépendances
   dependency-scan:
     runs-on: ubuntu-latest
 
@@ -92,7 +90,7 @@ jobs:
           severity: "HIGH,CRITICAL"
           exit-code: "1"
 
-  # 4. Build de l'image Docker
+  # 4. Build de l'image Docker pour scan conteneur
   build-image:
     needs: [sonar-check, dependency-scan]
     runs-on: ubuntu-latest
@@ -132,40 +130,21 @@ jobs:
           severity: "CRITICAL"
           exit-code: "1"
 
-#6. GitLeaks : Recherche des secrets exposés dans le code / historique de GIT
+  # 6. Gitleaks — recherche de secrets exposés dans le code / historique Git
   secret-scan:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 #Récupère tout l'historique de Git
+          fetch-depth: 0
 
       - name: Scan des secrets avec Gitleaks
-        uses: gitleaks/gitleaks-action@v2 #Lance Gitleaks 
+        uses: gitleaks/gitleaks-action@v2
 
-#7. Publication de l'image Docker dans GHCR : 
-  publish-image:
-    needs: [unit-test, sonar-check, dependency-scan]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Connexion GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build et push image
-        run: |
-          docker build -t ghcr.io/timmy-ipi/webapp:latest .
-          docker push ghcr.io/timmy-ipi/webapp:latest
-
-
-       build-and-push:
+  # 7. Publication de l'image Docker dans GHCR
+  build-and-push:
+    needs: [unit-test, sonar-check, dependency-scan, container-scan, secret-scan]
     runs-on: ubuntu-latest
 
     steps:
@@ -188,61 +167,61 @@ jobs:
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
 
-    # 2. Déployer l'image sur un cluster Kubernetes éphémère (kind)
-    deploy-k8s:
-      needs: build-and-push
-      runs-on: ubuntu-latest
-  
-      steps:
-        - uses: actions/checkout@v4
-  
-        - name: Nom de l'image en minuscules
-          run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/webapp" >> "$GITHUB_ENV"
-  
-        - name: Créer un cluster Kubernetes éphémère (kind)
-          uses: helm/kind-action@v1
-          with:
-            cluster_name: tp3
-  
-        - name: Créer le secret pour tirer l'image privée depuis GHCR
-          run: |
-            kubectl create secret docker-registry ghcr-secret \
-              --docker-server=ghcr.io \
-              --docker-username=${{ github.actor }} \
-              --docker-password=${{ secrets.GITHUB_TOKEN }}
-  
-        - name: Installer ingress-nginx
-          run: |
-            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-            kubectl wait --namespace ingress-nginx \
-              --for=condition=ready pod \
-              --selector=app.kubernetes.io/component=controller \
-              --timeout=120s
-                 sleep 20
-  
-        - name: Injecter l'image puis déployer les manifests
-          run: |
-            sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}:${GITHUB_SHA}|g" k8s/deployment.yaml
-            kubectl apply -f k8s/
-            kubectl rollout status deployment/webapp --timeout=120s
-  
-        - name: Vérifier le déploiement avec un smoke test
-          run: |
-            kubectl get pods -o wide
-            kubectl get svc webapp
-            kubectl port-forward svc/webapp 8080:80 &
-            sleep 5
-            curl -s http://localhost:8080/ | grep -i "hello"
-            
-        - name: Tester via Ingress
-          run: |
-            kubectl get ingress
-            kubectl get svc -n ingress-nginx
-            kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8081:80 &
-            sleep 10
-            curl -H "Host: webapp.local" http://localhost:8081/ | grep -i "hello"
-                  
-        - name: Vérifier le HPA
-          run: |
-            kubectl get hpa
-            kubectl describe hpa webapp-hpa
+  # 8. Déployer l'image sur un cluster Kubernetes éphémère avec kind
+  deploy-k8s:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nom de l'image en minuscules
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/webapp" >> "$GITHUB_ENV"
+
+      - name: Créer un cluster Kubernetes éphémère avec kind
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: tp3
+
+      - name: Créer le secret pour tirer l'image privée depuis GHCR
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Installer ingress-nginx
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=120s
+          sleep 20
+
+      - name: Injecter l'image puis déployer les manifests
+        run: |
+          sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}:${GITHUB_SHA}|g" k8s/deployment.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/webapp --timeout=120s
+
+      - name: Vérifier le déploiement avec un smoke test
+        run: |
+          kubectl get pods -o wide
+          kubectl get svc webapp
+          kubectl port-forward svc/webapp 8080:80 &
+          sleep 5
+          curl -s http://localhost:8080/ | grep -i "hello"
+
+      - name: Tester via Ingress
+        run: |
+          kubectl get ingress
+          kubectl get svc -n ingress-nginx
+          kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8081:80 &
+          sleep 10
+          curl -H "Host: webapp.local" http://localhost:8081/ | grep -i "hello"
+
+      - name: Vérifier le HPA
+        run: |
+          kubectl get hpa
+          kubectl describe hpa webapp-hpa
