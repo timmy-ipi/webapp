@@ -65,7 +65,15 @@ jobs:
       - name: Vérifier le déploiement avec un smoke test
         run: |
           kubectl get pods -o wide
-          kubectl get svc webapp
-          kubectl port-forward svc/webapp 8080:80 &
-          sleep 5
-          curl -s http://localhost:8080/ | grep -i "hello"
+
+      - name: Installer ingress-nginx
+        run: |
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+            kubectl wait --namespace ingress-nginx \
+              --for=condition=ready pod \
+              --selector=app.kubernetes.io/component=controller \
+              --timeout=120s
+                kubectl get svc webapp
+                kubectl port-forward svc/webapp 8080:80 &
+                sleep 5
+                curl -s http://localhost:8080/ | grep -i "hello"
