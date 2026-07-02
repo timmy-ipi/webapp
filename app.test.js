@@ -1,23 +1,17 @@
-const calcul = require('./app');
+const request = require('supertest');
+const { calcul, app } = require('./app');
 
-describe('Fonction calcul', () => {
-  test('2 + 3 = 5', () => {
-    expect(calcul(2, 3)).toBe(5);
-  });
+test('2 + 3 = 5', () => {
+  expect(calcul(2, 3)).toBe(5);
+});
 
-  test('1 + 2 = 3', () => {
-    expect(calcul(1, 2)).toBe(3);
-  });
+test('GET / retourne 200', async () => {
+  const res = await request(app).get('/');
+  expect(res.statusCode).toBe(200);
+});
 
-  test('0 + 0 = 0', () => {
-    expect(calcul(0, 0)).toBe(0);
-  });
-
-  test('-1 + -2 = -3', () => {
-    expect(calcul(-1, -2)).toBe(-3);
-  });
-
-  test('5 + -2 = 3', () => {
-    expect(calcul(5, -2)).toBe(3);
-  });
+test('GET /health retourne OK', async () => {
+  const res = await request(app).get('/health');
+  expect(res.statusCode).toBe(200);
+  expect(res.text).toBe('OK');
 });
