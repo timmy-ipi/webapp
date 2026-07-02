@@ -64,6 +64,8 @@ jobs:
 
       - name: Vérifier le déploiement avec un smoke test
         run: |
+          kubectl get pods -o wide
+          kubectl get svc webapp
           kubectl port-forward svc/webapp 8080:80 &
           sleep 5
-          curl -f http://localhost:8080/health
+          curl -s http://localhost:8080/ | grep -i "hello"
