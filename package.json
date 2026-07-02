@@ -5,7 +5,7 @@
     "test": "jest --coverage"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
     "lodash": "4.17.20"
   },
   "devDependencies": {
