@@ -1,9 +1,11 @@
 name: DevSecOps Pipeline (Cloud)
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     branches: ["main"]
-
+    
 permissions:
   contents: read
   security-events: write
