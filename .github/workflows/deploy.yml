@@ -78,3 +78,13 @@ jobs:
           kubectl port-forward svc/webapp 8080:80 &
           sleep 5
           curl -s http://localhost:8080/ | grep -i "hello"
+
+      - name: Tester via Ingress
+        run: |
+          curl -H "Host: webapp.local" http://localhost/ | grep -i "hello"
+          
+      - name: Vérifier le HPA
+        run: |
+          kubectl get hpa
+          kubectl describe hpa webapp-hpa
+        
