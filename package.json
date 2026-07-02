@@ -2,11 +2,12 @@
   "name": "devsecops-app",
   "version": "1.0.0",
   "scripts": {
-    "test": "jest --coverage",
-    "start": "node app.js"
+    "test": "jest --coverage"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "docx": "*",
+    "express": "^4.21.2",
+    "pptxgenjs": "*"
   },
   "devDependencies": {
     "jest": "^29.0.0"
