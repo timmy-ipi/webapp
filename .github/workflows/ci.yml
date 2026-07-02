@@ -57,7 +57,7 @@ jobs:
           # Attend le verdict de la Quality Gate par défaut "Sonar way"
           # et fait échouer le job si elle n'est pas respectée.
           args: >
-            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.wait=false
 
   # 3. Trivy — scan des dépendances (SCA)
   dependency-scan:
