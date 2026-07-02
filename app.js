@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
 
 // Sonde utilisée par Kubernetes : readiness / liveness
 app.get('/health', (req, res) => {
-  res.status(200).send('Timmy');
+  res.status(500).send('Timmy');
 });
 
 // On ne démarre le serveur que si le fichier est lancé directement.
