@@ -63,6 +63,7 @@ jobs:
             --for=condition=ready pod \
             --selector=app.kubernetes.io/component=controller \
             --timeout=120s
+              sleep 20
 
       - name: Injecter l'image puis déployer les manifests
         run: |
