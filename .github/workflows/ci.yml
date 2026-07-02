@@ -112,3 +112,15 @@ jobs:
           image-ref: "my-app:${{ github.sha }}"
           severity: "CRITICAL"
           exit-code: "1"
+
+#6. GitLeaks : Recherche des secrets exposés dans le code / historique de GIT
+  secret-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 #Récupère tout l'historique de Git
+
+      - name: Scan des secrets avec Gitleaks
+        uses: gitleaks/gitleaks-action@v2 #Lance Gitleaks 
