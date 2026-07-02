@@ -65,7 +65,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan du système de fichiers
+      - name: Scan Trivy au format SARIF
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "HIGH,CRITICAL"
+          exit-code: "0"
+
+      - name: Publier les résultats Trivy dans GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Bloquer si vulnérabilité HIGH/CRITICAL
         uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: "fs"
